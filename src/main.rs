@@ -83,15 +83,29 @@ fn find_valid_words(letters: &[String], dict: &[&str]) -> Vec<String> {
 fn join_words(letters: &str, valid_words: &[String]) -> Vec<(String, String)> {
     let mut found_combos: Vec<(String, String)> = Vec::new();
 
+    println!("inside fn join_words");
+
     for first_word in valid_words {
-        let words_that_link = valid_words.iter().filter(|word_to_link| {
-            word_to_link.chars().next() == first_word.chars().last()
-                && word_to_link.len() + first_word.len() >= 12
-        });
+        // println!("first_word: {first_word}> ");
+        let words_that_link: Vec<&String> = valid_words
+            .iter()
+            .filter(|word_to_link| {
+                if let (Some(first_char), Some(last_char)) =
+                    (word_to_link.chars().next(), first_word.chars().last())
+                {
+                    // println!("e {} {}", first_char, last_char);
+                    first_char == last_char && word_to_link.len() + first_word.len() >= 12
+                } else {
+                    false
+                }
+            })
+            .collect();
+        // println!("words_that_link.len(): {}", words_that_link.len());
         for second_word in words_that_link {
+            // println!("First word: {first_word}, second word: {second_word}");
             // see if all letters are in the linked word
             let full_word = [first_word.clone(), second_word.clone()].join("");
-            print!("full word: {}", full_word);
+            // print!("full word: {}", full_word);
             if letters.chars().all(|letter| full_word.contains(letter)) {
                 found_combos.push((first_word.to_string(), second_word.to_string()))
             }
@@ -115,14 +129,21 @@ fn main() {
     let popular_words =
         read_to_string("dict_large.txt").expect("Something went wrong reading the file");
 
-    let dict_vec: Vec<&str> = popular_words.split('\n').collect();
+    let dict_vec: Vec<&str> = popular_words.split('\n').map(|word| word.trim()).collect();
 
     let mut letters_vec: Vec<String> = vec![];
 
-    for _ in 0..4 {
-        let letters = get_valid_input();
-        letters_vec.push(letters.clone());
-    }
+    // ! done for testing purposes, undo this
+    letters_vec = vec![
+        "pal".to_string(),
+        "ons".to_string(),
+        "itu".to_string(),
+        "yrd".to_string(),
+    ];
+    // for _ in 0..4 {
+    //     let letters = get_valid_input();
+    //     letters_vec.push(letters.clone());
+    // }
 
     let letters_string = letters_vec.join("");
 
@@ -130,7 +151,7 @@ fn main() {
 
     // print all words that can be spelled with the user input
     // println!("Words that can be spelled with the user input:");
-    // for word in valid_words {
+    // for word in &valid_words {
     //     println!("{}", word);
     // }
 
