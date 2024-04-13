@@ -86,23 +86,19 @@ fn join_words(letters: &str, valid_words: &[String]) -> Vec<(String, String)> {
     println!("inside fn join_words");
 
     for first_word in valid_words {
-        // println!("first_word: {first_word}> ");
         let words_that_link: Vec<&String> = valid_words
             .iter()
             .filter(|word_to_link| {
                 if let (Some(first_char), Some(last_char)) =
                     (word_to_link.chars().next(), first_word.chars().last())
                 {
-                    // println!("e {} {}", first_char, last_char);
                     first_char == last_char && word_to_link.len() + first_word.len() >= 12
                 } else {
                     false
                 }
             })
             .collect();
-        // println!("words_that_link.len(): {}", words_that_link.len());
         for second_word in words_that_link {
-            // println!("First word: {first_word}, second word: {second_word}");
             // see if all letters are in the linked word
             let full_word = [first_word.clone(), second_word.clone()].join("");
             // print!("full word: {}", full_word);
@@ -133,27 +129,14 @@ fn main() {
 
     let mut letters_vec: Vec<String> = vec![];
 
-    // ! done for testing purposes, undo this
-    letters_vec = vec![
-        "pal".to_string(),
-        "ons".to_string(),
-        "itu".to_string(),
-        "yrd".to_string(),
-    ];
-    // for _ in 0..4 {
-    //     let letters = get_valid_input();
-    //     letters_vec.push(letters.clone());
-    // }
+    for _ in 0..4 {
+        let letters = get_valid_input();
+        letters_vec.push(letters.clone());
+    }
 
     let letters_string = letters_vec.join("");
 
     let valid_words = find_valid_words(&letters_vec, &dict_vec);
-
-    // print all words that can be spelled with the user input
-    // println!("Words that can be spelled with the user input:");
-    // for word in &valid_words {
-    //     println!("{}", word);
-    // }
 
     let shortest_combinations = join_words(&letters_string, &valid_words);
     println!("Shortest combinations of valid words that include all letters:");
