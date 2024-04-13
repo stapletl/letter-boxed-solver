@@ -2,8 +2,10 @@ extern crate cfonts;
 
 use cfonts::{say, BgColors, Colors, Fonts, Options};
 use std::{
+    collections::HashSet,
     fs::read_to_string,
     io::{self, Write},
+    vec,
 };
 
 /// returns a string of 3 alphabetic characters
@@ -45,9 +47,9 @@ fn get_valid_letters(char_to_exclude: char, letters: &[String]) -> String {
 }
 
 /// Given the vector of letters and vector of words in the dictionary, return valid words.
-fn find_valid_words(letters: Vec<String>, dict: Vec<&str>) -> Vec<&str> {
+fn find_valid_words(letters: &[String], dict: &[&str]) -> Vec<String> {
     let letters_string = letters.join("");
-    let mut found_words: Vec<&str> = Vec::new();
+    let mut found_words: Vec<String> = Vec::new();
 
     // for each word in the dictionary see if it can be spelled with a sequence of valid letters
     for word in dict {
@@ -70,11 +72,33 @@ fn find_valid_words(letters: Vec<String>, dict: Vec<&str>) -> Vec<&str> {
             };
         }
         if valid {
-            found_words.push(word);
+            found_words.push(word.to_string());
         }
     }
 
     found_words
+}
+
+// given the string of letters and vector of valid words, find sets of two words that include all letters at least once
+fn join_words(letters: &str, valid_words: &[String]) -> Vec<(String, String)> {
+    let mut found_combos: Vec<(String, String)> = Vec::new();
+
+    for first_word in valid_words {
+        let words_that_link = valid_words.iter().filter(|word_to_link| {
+            word_to_link.chars().next() == first_word.chars().last()
+                && word_to_link.len() + first_word.len() >= 12
+        });
+        for second_word in words_that_link {
+            // see if all letters are in the linked word
+            let full_word = [first_word.clone(), second_word.clone()].join("");
+            print!("full word: {}", full_word);
+            if letters.chars().all(|letter| full_word.contains(letter)) {
+                found_combos.push((first_word.to_string(), second_word.to_string()))
+            }
+        }
+    }
+
+    found_combos
 }
 
 fn main() {
@@ -89,7 +113,7 @@ fn main() {
     });
 
     let popular_words =
-        read_to_string("popular.txt").expect("Something went wrong reading the file");
+        read_to_string("dict_large.txt").expect("Something went wrong reading the file");
 
     let dict_vec: Vec<&str> = popular_words.split('\n').collect();
 
@@ -102,19 +126,17 @@ fn main() {
 
     let letters_string = letters_vec.join("");
 
-    for letter in letters_string.chars() {
-        println!(
-            "valid letters for {}: {}",
-            letter,
-            get_valid_letters(letter, &letters_vec)
-        )
-    }
-
-    let valid_words = find_valid_words(letters_vec, dict_vec);
+    let valid_words = find_valid_words(&letters_vec, &dict_vec);
 
     // print all words that can be spelled with the user input
-    println!("Words that can be spelled with the user input:");
-    for word in valid_words {
-        println!("{}", word);
+    // println!("Words that can be spelled with the user input:");
+    // for word in valid_words {
+    //     println!("{}", word);
+    // }
+
+    let shortest_combinations = join_words(&letters_string, &valid_words);
+    println!("Shortest combinations of valid words that include all letters:");
+    for combination in shortest_combinations {
+        println!("{}, {}", combination.0, combination.1);
     }
 }
