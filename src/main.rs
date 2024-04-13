@@ -1,3 +1,6 @@
+extern crate cfonts;
+
+use cfonts::{say, BgColors, Colors, Fonts, Options};
 use std::{
     fs::read_to_string,
     io::{self, Write},
@@ -9,7 +12,7 @@ use std::{
 fn get_valid_input() -> String {
     loop {
         let mut input = String::new();
-        println!("Enter exactly 3 characters (a-z, A-Z): ");
+        println!("Enter exactly 3 characters e.g. 'abc': ");
         io::stdout().flush().unwrap();
         io::stdin()
             .read_line(&mut input)
@@ -27,8 +30,63 @@ fn get_valid_input() -> String {
     }
 }
 
+/// Given a character and a vector of letters, return all letters that are not in the same element as it
+fn get_valid_letters(char_to_exclude: char, letters: &[String]) -> String {
+    let filtered_letters: Vec<&String> = letters
+        .iter()
+        .filter(|side| !side.contains(char_to_exclude))
+        .collect();
+
+    filtered_letters
+        .iter()
+        .map(|s| s.to_string())
+        .collect::<Vec<String>>()
+        .join("")
+}
+
+/// Given the vector of letters and vector of words in the dictionary, return valid words.
+fn find_valid_words(letters: Vec<String>, dict: Vec<&str>) -> Vec<&str> {
+    let letters_string = letters.join("");
+    let mut found_words: Vec<&str> = Vec::new();
+
+    // for each word in the dictionary see if it can be spelled with a sequence of valid letters
+    for word in dict {
+        let mut valid = true;
+        let mut prev_char: char = '0'; // this is not a valid alphabetic char, so we initialize to it
+        for (index, letter) in word.char_indices() {
+            // check if first letter is is valid
+            if index == 0 {
+                if !letters_string.contains(letter) {
+                    valid = false;
+                }
+            } else {
+                // otherwise make sure the current letter is valid from the previous letter
+                valid = get_valid_letters(letter, &letters).contains(prev_char);
+            }
+
+            prev_char = letter;
+            if !valid {
+                break;
+            };
+        }
+        if valid {
+            found_words.push(word);
+        }
+    }
+
+    found_words
+}
+
 fn main() {
-    // print
+    // printab
+    say(Options {
+        text: String::from("LetterBoxed Solver"),
+        font: Fonts::Font3d,
+        colors: vec![Colors::BlueBright],
+        background: BgColors::Transparent,
+        max_length: 6,
+        ..Options::default()
+    });
 
     let popular_words =
         read_to_string("popular.txt").expect("Something went wrong reading the file");
@@ -40,40 +98,23 @@ fn main() {
     for _ in 0..4 {
         let letters = get_valid_input();
         letters_vec.push(letters.clone());
-
-        println!("your input (converted to string) was: {}", letters);
     }
 
-    // print!("your input was: {}", input);
+    let letters_string = letters_vec.join("");
 
-    // for (index, word) in letters_vec.iter().enumerate() {
-    //     println!("Set of letters {}: {}", index, word);
-    // }
+    for letter in letters_string.chars() {
+        println!(
+            "valid letters for {}: {}",
+            letter,
+            get_valid_letters(letter, &letters_vec)
+        )
+    }
 
-    // let mut found_words = Vec::new();
-    // for word in dic_vec {
-    //     if word.len() <= 6 {
-    //         let mut temp_user_input = user_input.to_string();
-    //         let mut temp_word = word.to_string();
-    //         let mut found = true;
-    //         for c in word.chars() {
-    //             if temp_user_input.contains(c) {
-    //                 temp_user_input = temp_user_input.replacen(c, "", 1);
-    //                 temp_word = temp_word.replacen(c, "", 1);
-    //             } else {
-    //                 found = false;
-    //                 break;
-    //             }
-    //         }
-    //         if found {
-    //             found_words.push(word);
-    //         }
-    //     }
-    // }
+    let valid_words = find_valid_words(letters_vec, dict_vec);
 
     // print all words that can be spelled with the user input
-    // println!("Words that can be spelled with the user input:");
-    // for word in found_words {
-    //     println!("{}", word);
-    // }
+    println!("Words that can be spelled with the user input:");
+    for word in valid_words {
+        println!("{}", word);
+    }
 }
