@@ -63,7 +63,7 @@ fn find_valid_words(letters: &[String], dict: &[&str]) -> Vec<String> {
                 }
             } else {
                 // otherwise make sure the current letter is valid from the previous letter
-                valid = get_valid_letters(letter, &letters).contains(prev_char);
+                valid = letters_string.contains(letter) && get_valid_letters(letter, letters).contains(prev_char);
             }
 
             prev_char = letter;
@@ -83,8 +83,6 @@ fn find_valid_words(letters: &[String], dict: &[&str]) -> Vec<String> {
 fn join_words(letters: &str, valid_words: &[String]) -> Vec<(String, String)> {
     let mut found_combos: Vec<(String, String)> = Vec::new();
 
-    println!("inside fn join_words");
-
     for first_word in valid_words {
         let words_that_link: Vec<&String> = valid_words
             .iter()
@@ -101,8 +99,7 @@ fn join_words(letters: &str, valid_words: &[String]) -> Vec<(String, String)> {
         for second_word in words_that_link {
             // see if all letters are in the linked word
             let full_word = [first_word.clone(), second_word.clone()].join("");
-            // print!("full word: {}", full_word);
-            if letters.chars().all(|letter| full_word.contains(letter)) {
+            if !letters.chars().any(|letter| !full_word.contains(letter)) {
                 found_combos.push((first_word.to_string(), second_word.to_string()))
             }
         }
