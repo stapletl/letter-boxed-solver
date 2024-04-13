@@ -2,10 +2,7 @@ extern crate cfonts;
 
 use cfonts::{say, BgColors, Colors, Fonts, Options};
 use std::{
-    collections::HashSet,
-    fs::read_to_string,
-    io::{self, Write},
-    vec,
+    collections::HashSet, fs::read_to_string, io::{self, Write}, process, vec
 };
 
 /// returns a string of 3 alphabetic characters
@@ -14,11 +11,13 @@ use std::{
 fn get_valid_input() -> String {
     loop {
         let mut input = String::new();
-        println!("Enter exactly 3 characters e.g. 'abc': ");
+        print!("Enter exactly 3 characters e.g. 'abc': ");
         io::stdout().flush().unwrap();
-        io::stdin()
-            .read_line(&mut input)
-            .expect("Failed to read input");
+
+        if let Err(err) = io::stdin().read_line(&mut input) {
+            eprintln!("Failed to read input: {}", err);
+            process::exit(1);
+        }
 
         // Remove trailing newline character
         input = input.trim().to_string();
@@ -47,12 +46,12 @@ fn get_valid_letters(char_to_exclude: char, letters: &[String]) -> String {
 }
 
 /// Given the vector of letters and vector of words in the dictionary, return valid words.
-fn find_valid_words(letters: &[String], dict: &[&str]) -> Vec<String> {
+fn find_valid_words(letters: &[String], dictionary: &[&str]) -> Vec<String> {
     let letters_string = letters.join("");
     let mut found_words: Vec<String> = Vec::new();
 
     // for each word in the dictionary see if it can be spelled with a sequence of valid letters
-    for word in dict {
+    for word in dictionary {
         let mut valid = true;
         let mut prev_char: char = '0'; // this is not a valid alphabetic char, so we initialize to it
         for (index, letter) in word.char_indices() {
@@ -63,7 +62,8 @@ fn find_valid_words(letters: &[String], dict: &[&str]) -> Vec<String> {
                 }
             } else {
                 // otherwise make sure the current letter is valid from the previous letter
-                valid = letters_string.contains(letter) && get_valid_letters(letter, letters).contains(prev_char);
+                valid = letters_string.contains(letter)
+                    && get_valid_letters(letter, letters).contains(prev_char);
             }
 
             prev_char = letter;
@@ -80,7 +80,7 @@ fn find_valid_words(letters: &[String], dict: &[&str]) -> Vec<String> {
 }
 
 // given the string of letters and vector of valid words, find sets of two words that include all letters at least once
-fn join_words(letters: &str, valid_words: &[String]) -> Vec<(String, String)> {
+fn join_words(letters_set: &HashSet<char>, valid_words: &[String]) -> Vec<(String, String)> {
     let mut found_combos: Vec<(String, String)> = Vec::new();
 
     for first_word in valid_words {
@@ -98,8 +98,8 @@ fn join_words(letters: &str, valid_words: &[String]) -> Vec<(String, String)> {
             .collect();
         for second_word in words_that_link {
             // see if all letters are in the linked word
-            let full_word = [first_word.clone(), second_word.clone()].join("");
-            if !letters.chars().any(|letter| !full_word.contains(letter)) {
+            let word_set: HashSet<char> = first_word.chars().chain(second_word.chars()).collect();
+            if letters_set.is_subset(&word_set) {
                 found_combos.push((first_word.to_string(), second_word.to_string()))
             }
         }
@@ -119,25 +119,38 @@ fn main() {
         ..Options::default()
     });
 
-    let popular_words =
-        read_to_string("dict_large.txt").expect("Something went wrong reading the file");
+    let popular_words = match read_to_string("dict_med.txt") {
+        Ok(content) => content,
+        Err(err) => {
+            eprintln!("Error reading file: {}", err);
+            process::exit(1);
+        }
+    };
 
-    let dict_vec: Vec<&str> = popular_words.split('\n').map(|word| word.trim()).collect();
+    let dictionary_words: Vec<&str> = popular_words.split('\n').map(|word| word.trim()).collect();
 
-    let mut letters_vec: Vec<String> = vec![];
+    let mut letter_groups: Vec<String> = vec![];
 
     for _ in 0..4 {
         let letters = get_valid_input();
-        letters_vec.push(letters.clone());
+        letter_groups.push(letters.clone());
     }
 
-    let letters_string = letters_vec.join("");
+    let letters_set: HashSet<char> = letter_groups.join("").chars().collect();
 
-    let valid_words = find_valid_words(&letters_vec, &dict_vec);
+    let valid_words: Vec<String> = find_valid_words(&letter_groups, &dictionary_words);
 
-    let shortest_combinations = join_words(&letters_string, &valid_words);
+    let shortest_combinations = join_words(&letters_set, &valid_words);
     println!("Shortest combinations of valid words that include all letters:");
     for combination in shortest_combinations {
-        println!("{}, {}", combination.0, combination.1);
+        println!("{}->{}", combination.0, combination.1);
+    }
+
+    // Check for one-word solutions
+    for word in &valid_words {
+        let word_set: HashSet<char> = word.chars().collect();
+        if letters_set.is_subset(&word_set) {
+            println!("WOW! One-word solution: {}", word);
+        }
     }
 }
