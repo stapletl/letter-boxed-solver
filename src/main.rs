@@ -2,7 +2,10 @@ extern crate cfonts;
 
 use cfonts::{say, BgColors, Colors, Fonts, Options};
 use std::{
-    collections::HashSet, fs::read_to_string, io::{self, Write}, process, vec
+    collections::HashSet,
+    fs::read_to_string,
+    io::{self, Write},
+    process, vec,
 };
 
 /// returns a string of 3 alphabetic characters
@@ -46,12 +49,12 @@ fn get_valid_letters(char_to_exclude: char, letters: &[String]) -> String {
 }
 
 /// Given the vector of letters and vector of words in the dictionary, return valid words.
-fn find_valid_words(letters: &[String], dictionary: &[&str]) -> Vec<String> {
+fn find_valid_words(letters: &[String], word_list: &[&str]) -> Vec<String> {
     let letters_string = letters.join("");
     let mut found_words: Vec<String> = Vec::new();
 
     // for each word in the dictionary see if it can be spelled with a sequence of valid letters
-    for word in dictionary {
+    for word in word_list {
         let mut valid = true;
         let mut prev_char: char = '0'; // this is not a valid alphabetic char, so we initialize to it
         for (index, letter) in word.char_indices() {
@@ -112,14 +115,14 @@ fn main() {
     // printab
     say(Options {
         text: String::from("LetterBoxed Solver"),
-        font: Fonts::Font3d,
+        font: Fonts::FontBlock,
         colors: vec![Colors::BlueBright],
         background: BgColors::Transparent,
         max_length: 6,
         ..Options::default()
     });
 
-    let popular_words = match read_to_string("dict_med.txt") {
+    let dictionary = match read_to_string("data/dict_med.txt") {
         Ok(content) => content,
         Err(err) => {
             eprintln!("Error reading file: {}", err);
@@ -127,7 +130,8 @@ fn main() {
         }
     };
 
-    let dictionary_words: Vec<&str> = popular_words.split('\n').map(|word| word.trim()).collect();
+    // todo: check to see if the line has '\n' or '\r\n' then split based on that file ending
+    let dictionary_words: Vec<&str> = dictionary.split('\n').map(|word| word.trim()).collect();
 
     let mut letter_groups: Vec<String> = vec![];
 
