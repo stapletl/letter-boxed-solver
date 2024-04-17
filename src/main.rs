@@ -2,7 +2,7 @@ extern crate cfonts;
 
 use cfonts::{say, BgColors, Colors, Fonts, Options};
 use std::{
-    collections::HashSet,
+    collections::{HashMap, HashSet},
     fs::read_to_string,
     io::{self, Write},
     process, vec,
@@ -34,6 +34,7 @@ fn get_valid_input() -> String {
     }
 }
 
+/// Given a character and a vector of letters, return all letters that are not in the same element as it
 fn get_valid_letters(char_to_exclude: char, letter_groups: &[HashSet<char>]) -> HashSet<char> {
     let filtered_letters: HashSet<char> = letter_groups
         .iter()
@@ -46,7 +47,11 @@ fn get_valid_letters(char_to_exclude: char, letter_groups: &[HashSet<char>]) -> 
 }
 
 /// Given the vector of letters and vector of words in the dictionary, return valid words.
-fn find_valid_words(letter_groups: &[HashSet<char>], letters_set: &HashSet<char>, word_list: &[&str]) -> Vec<String> {
+fn find_valid_words(
+    letters_map: &HashMap<char, HashSet<char>>,
+    letters_set: &HashSet<char>,
+    word_list: &[&str],
+) -> Vec<String> {
     let mut found_words: Vec<String> = Vec::new();
 
     // for each word in the dictionary see if it can be spelled with a sequence of valid letters
@@ -63,7 +68,7 @@ fn find_valid_words(letter_groups: &[HashSet<char>], letters_set: &HashSet<char>
             if let Some(prev) = prev_char {
                 // check if the current letter is valid from the previous letter
                 valid = letters_set.contains(&letter)
-                    && get_valid_letters(prev, letter_groups).contains(&letter);
+                    && letters_map.get(&prev).unwrap().contains(&letter);
             } else {
                 // check if the first letter is valid
                 valid = letters_set.contains(&letter);
@@ -118,7 +123,6 @@ fn join_words(letters_set: &HashSet<char>, valid_words: &[String]) -> Vec<(Strin
 }
 
 fn main() {
-    // printab
     say(Options {
         text: String::from("LetterBoxed Solver"),
         font: Fonts::Font3d,
@@ -128,7 +132,7 @@ fn main() {
         ..Options::default()
     });
 
-    let dictionary = match read_to_string("data/dict_large.txt") {
+    let dictionary = match read_to_string("data/dict_oxford.txt") {
         Ok(content) => content.to_lowercase(),
         Err(err) => {
             eprintln!("Error reading file: {}", err);
@@ -151,12 +155,13 @@ fn main() {
     }
 
     let letters_set: HashSet<char> = letter_groups.iter().flatten().cloned().collect();
+    let mut letters_map: HashMap<char, HashSet<char>> = HashMap::new();
 
-    print!("letters in the thing: {:?}", letters_set);
+    for letter in &letters_set {
+        letters_map.insert(*letter, get_valid_letters(*letter, &letter_groups));
+    }
 
-    let valid_words: Vec<String> = find_valid_words(&letter_groups, &letters_set, &dictionary_words);
-
-    println!("len of valid_words: {}", valid_words.len());
+    let valid_words: Vec<String> = find_valid_words(&letters_map, &letters_set, &dictionary_words);
 
     let shortest_combinations = join_words(&letters_set, &valid_words);
     println!("Two-word combinations of valid words that include all letters:");
