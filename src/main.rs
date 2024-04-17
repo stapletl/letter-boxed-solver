@@ -23,7 +23,7 @@ fn get_valid_input() -> String {
         }
 
         // Remove trailing newline character
-        input = input.trim().to_string();
+        input = input.trim().to_lowercase();
 
         // Check if input length is 3 and only contains alphabetic characters
         if input.len() == 3 && input.chars().all(|c| c.is_ascii_alphabetic()) {
@@ -55,25 +55,31 @@ fn find_valid_words(letters: &[String], word_list: &[&str]) -> Vec<String> {
 
     // for each word in the dictionary see if it can be spelled with a sequence of valid letters
     for word in word_list {
+        // words must be more than 3 characters in the game
+        if word.len() < 3 {
+            continue;
+        }
+
         let mut valid = true;
-        let mut prev_char: char = '0'; // this is not a valid alphabetic char, so we initialize to it
-        for (index, letter) in word.char_indices() {
-            // check if first letter is is valid
-            if index == 0 {
-                if !letters_string.contains(letter) {
-                    valid = false;
-                }
-            } else {
-                // otherwise make sure the current letter is valid from the previous letter
+        let mut prev_char: Option<char> = None;
+
+        for letter in word.chars() {
+            if let Some(prev) = prev_char {
+                // check if the current letter is valid from the previous letter
                 valid = letters_string.contains(letter)
-                    && get_valid_letters(letter, letters).contains(prev_char);
+                    && get_valid_letters(prev, letters).contains(letter);
+            } else {
+                // check if the first letter is valid
+                valid = letters_string.contains(letter);
             }
 
-            prev_char = letter;
             if !valid {
                 break;
-            };
+            }
+
+            prev_char = Some(letter);
         }
+
         if valid {
             found_words.push(word.to_string());
         }
@@ -100,10 +106,14 @@ fn join_words(letters_set: &HashSet<char>, valid_words: &[String]) -> Vec<(Strin
             })
             .collect();
         for second_word in words_that_link {
-            // see if all letters are in the linked word
-            let word_set: HashSet<char> = first_word.chars().chain(second_word.chars()).collect();
+            // Create a new HashSet to store the characters from both words
+            let mut word_set: HashSet<char> = HashSet::new();
+            word_set.extend(first_word.chars());
+            word_set.extend(second_word.chars());
+
+            // Check if the word_set contains all the characters from letters_set
             if letters_set.is_subset(&word_set) {
-                found_combos.push((first_word.to_string(), second_word.to_string()))
+                found_combos.push((first_word.to_string(), second_word.to_string()));
             }
         }
     }
@@ -115,23 +125,27 @@ fn main() {
     // printab
     say(Options {
         text: String::from("LetterBoxed Solver"),
-        font: Fonts::FontBlock,
+        font: Fonts::Font3d,
         colors: vec![Colors::BlueBright],
         background: BgColors::Transparent,
         max_length: 6,
         ..Options::default()
     });
 
-    let dictionary = match read_to_string("data/dict_med.txt") {
-        Ok(content) => content,
+    let dictionary = match read_to_string("data/dict_large.txt") {
+        Ok(content) => content.to_lowercase(),
         Err(err) => {
             eprintln!("Error reading file: {}", err);
             process::exit(1);
         }
     };
 
-    // todo: check to see if the line has '\n' or '\r\n' then split based on that file ending
-    let dictionary_words: Vec<&str> = dictionary.split('\n').map(|word| word.trim()).collect();
+    // check to see if the line has '\n' or '\r\n' then split based on that file ending
+    let dictionary_words: Vec<&str> = dictionary
+        .split("\r\n")
+        .flat_map(|line| line.split('\n'))
+        .map(|word| word.trim())
+        .collect();
 
     let mut letter_groups: Vec<String> = vec![];
 
@@ -144,17 +158,24 @@ fn main() {
 
     let valid_words: Vec<String> = find_valid_words(&letter_groups, &dictionary_words);
 
+    println!("len of valid_words: {}", valid_words.len());
+
     let shortest_combinations = join_words(&letters_set, &valid_words);
-    println!("Shortest combinations of valid words that include all letters:");
+    println!("Two-word combinations of valid words that include all letters:");
     for combination in shortest_combinations {
         println!("{}->{}", combination.0, combination.1);
     }
 
     // Check for one-word solutions
+    let mut solution_found = false;
     for word in &valid_words {
         let word_set: HashSet<char> = word.chars().collect();
         if letters_set.is_subset(&word_set) {
+            solution_found = true;
             println!("WOW! One-word solution: {}", word);
         }
+    }
+    if !solution_found {
+        println!("No One-word solutions found :(");
     }
 }
