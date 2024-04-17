@@ -34,23 +34,19 @@ fn get_valid_input() -> String {
     }
 }
 
-/// Given a character and a vector of letters, return all letters that are not in the same element as it
-fn get_valid_letters(char_to_exclude: char, letters: &[String]) -> String {
-    let filtered_letters: Vec<&String> = letters
+fn get_valid_letters(char_to_exclude: char, letter_groups: &[HashSet<char>]) -> HashSet<char> {
+    let filtered_letters: HashSet<char> = letter_groups
         .iter()
-        .filter(|side| !side.contains(char_to_exclude))
+        .filter(|side| !side.contains(&char_to_exclude))
+        .flatten()
+        .cloned()
         .collect();
 
     filtered_letters
-        .iter()
-        .map(|s| s.to_string())
-        .collect::<Vec<String>>()
-        .join("")
 }
 
 /// Given the vector of letters and vector of words in the dictionary, return valid words.
-fn find_valid_words(letters: &[String], word_list: &[&str]) -> Vec<String> {
-    let letters_string = letters.join("");
+fn find_valid_words(letter_groups: &[HashSet<char>], letters_set: &HashSet<char>, word_list: &[&str]) -> Vec<String> {
     let mut found_words: Vec<String> = Vec::new();
 
     // for each word in the dictionary see if it can be spelled with a sequence of valid letters
@@ -66,11 +62,11 @@ fn find_valid_words(letters: &[String], word_list: &[&str]) -> Vec<String> {
         for letter in word.chars() {
             if let Some(prev) = prev_char {
                 // check if the current letter is valid from the previous letter
-                valid = letters_string.contains(letter)
-                    && get_valid_letters(prev, letters).contains(letter);
+                valid = letters_set.contains(&letter)
+                    && get_valid_letters(prev, letter_groups).contains(&letter);
             } else {
                 // check if the first letter is valid
-                valid = letters_string.contains(letter);
+                valid = letters_set.contains(&letter);
             }
 
             if !valid {
@@ -147,16 +143,18 @@ fn main() {
         .map(|word| word.trim())
         .collect();
 
-    let mut letter_groups: Vec<String> = vec![];
-
+    // letter_groups are shaped like this [('a','b','c'), ('d','e','f'), ('g','h','i'), ('j','k','l')];
+    let mut letter_groups: Vec<HashSet<char>> = vec![];
     for _ in 0..4 {
-        let letters = get_valid_input();
+        let letters: HashSet<char> = get_valid_input().chars().collect();
         letter_groups.push(letters.clone());
     }
 
-    let letters_set: HashSet<char> = letter_groups.join("").chars().collect();
+    let letters_set: HashSet<char> = letter_groups.iter().flatten().cloned().collect();
 
-    let valid_words: Vec<String> = find_valid_words(&letter_groups, &dictionary_words);
+    print!("letters in the thing: {:?}", letters_set);
+
+    let valid_words: Vec<String> = find_valid_words(&letter_groups, &letters_set, &dictionary_words);
 
     println!("len of valid_words: {}", valid_words.len());
 
